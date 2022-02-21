@@ -6,7 +6,6 @@ The file structure follows the one in [Recurrent Visual Attention Model implemen
 
 I choose the U-net a it is a simple networ, that could be implemented fast. 
 
-The work here is in it's raw state, the network has yet to be tested, and the code will have some descriptions, where necessary.
+The work here is far from finished. The data-loading, image processing and training script have to be competed. After that, the network has be tested, and the code will have some descriptions, where necessary.
 
-It would be great to additionally refactor the network for example to be able to work with different image input size.
-
+It would be nice to additionally refactor the network for example to be able to work with different image input size.

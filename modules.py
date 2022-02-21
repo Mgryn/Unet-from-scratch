@@ -12,8 +12,8 @@ class Convolutions(nn.Module):
         )
     
     def forward(self, x):
-        y = self.layers(x)
-        return y
+        x = self.layers(x)
+        return x
 
 class Down(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -37,5 +37,5 @@ class Up(nn.Module):
         shape_diff = (x_down.shape[2] - x_up.shape[2])//2
         x_down = x_down[...,shape_diff:-1-shape_diff+1, shape_diff:-1-shape_diff+1]
         x_cat = torch.cat([x_down, x_up], dim=1)
-        y = self.convolution(x_cat)
-        return y
+        x_cat = self.convolution(x_cat)
+        return x_cat

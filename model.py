@@ -3,6 +3,7 @@ import torch.nn as nn
 from modules import *
 
 class Unet(nn.Module):
+    """Pytorch implementation of U-net nn"""
     def __init__(self):
         super(Unet, self).__init__()        
         self.down_1 = Down(1, 64)
