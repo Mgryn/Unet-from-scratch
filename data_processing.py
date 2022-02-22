@@ -5,9 +5,9 @@ import albumentations as A
 import cv2
 
 # Load the files
-file = Image.open('unet-master/data/membrane/train-volume.tif')
+file = Image.open('data/train-volume.tif')
 images = [np.array(page) for page in ImageSequence.Iterator(file)]
-file = Image.open('unet-master/data/membrane/train-labels.tif')
+file = Image.open('data/train-labels.tif')
 labels = [np.array(page) for page in ImageSequence.Iterator(file)]
 
 # images size (knowing it is square)
