@@ -47,13 +47,16 @@ def normalize(images, label=False):
     images = np.transpose(images, (0, 3, 1, 2))
     return images
 
-def load_data(data_dir):
+def load_data(data_dir, label=True):
+    """Loads and normalizes images and label (if label == True)"""
     img_files = sorted(glob.glob(data_dir+'/train_img*.png'))
-    label_files = sorted(glob.glob(data_dir+'/train_lab*.png'))
     images = [cv2.imread(file) for file in img_files]
-    labels = [cv2.imread(file) for file in label_files]
     # normalize images to <-1;1>
-    images = normalize(np.array(images))
+    images = normalize(images)
+    if not labels:
+        return images
+    label_files = sorted(glob.glob(data_dir+'/train_lab*.png'))
+    labels = [cv2.imread(file) for file in label_files]
     # normalize data to 1 or 0 values (membrane or not)
     labels = normalize(labels, label=True)
     return images, labels
@@ -103,13 +106,11 @@ def test_loader(
     batch_size=1, 
     random_seed=66,
     num_workers=1):
-    """Creates a dataloader for a training set."""
-
-    images, labels = load_data(data_dir)
-    dataset = TensorDataset(images, labels)
+    """Creates a dataloader for a test set."""
+    images = load_data(data_dir, label=False)
 
     test_loader = DataLoader(
-        dataset=dataset,
+        dataset=images,
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
