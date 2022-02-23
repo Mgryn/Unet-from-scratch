@@ -17,6 +17,8 @@ I choose the U-net as it is easy to implement and very effective network in vari
 
 ## Future work
 
-This project is still in progress. The data-loading, image processing and training script have to be completed. After that, the network will be tested, and the code will be commented.
+This project is still in progress. The data-loading, and training script have to be completed. After that, the network will be tested, and the code will be commented.
 
-Additional, refactoring of the network for example will be beneficial to be able to work with different image input size.
+It would be great to implement ability to work with:
+- different sized input
+- bigger number of classes (currently 2).
