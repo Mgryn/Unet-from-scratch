@@ -24,8 +24,10 @@ def main(config):
             config.batch_size,
             config.seed,
         )
-        
-        Trainer(config, dataset)
+
+    
+    Trainer(config, dataset)
+
 
 
 if __name__ == '__main__':

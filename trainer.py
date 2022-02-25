@@ -4,16 +4,17 @@ import torch.optim as optim
 from model import Unet
 
 class Trainer:
-    def __init__(self, config):
+    def __init__(self, config, dataset):
         """Initialize the network with parameters from config file"""
         self.net = Unet()
         self.epochs = config.epochs
         self.batch_size = config.batch_size
         self.lr = config.lr
         self.momentum = config.mn
+        self.dataset = dataset
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        self.optimizer = optim.Adam(self.net.parameters(), lr = self.lr, momentum=self.momentum)
+        self.optimizer = optim.Adam(self.net.parameters(), lr = self.lr)
         self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'max', patience=5)
         self.criterion = nn.CrossEntropyLoss()
 
@@ -36,4 +37,3 @@ class Trainer:
 
             # with tqdm(total=data.size()):
             #     train_one_epoch()
-            

@@ -1,11 +1,12 @@
 import cv2
 import glob
 import numpy as np
+import torch
 import albumentations as A
 from PIL import Image, ImageSequence
 from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.sampler import SubsetRandomSampler
-
+import pdb
 
 def preprocessing(augmentations=20):
     """Loads the data form multipage tiff files, adds transforms and saves
@@ -38,27 +39,28 @@ def preprocessing(augmentations=20):
             cv2.imwrite(filename, transformed['mask'])
 
 
-def normalize(images, label=False):
+def normalize(images, labels=False):
     images = np.array(images, dtype=float)
     images /= 255.0
-    if not label:
+    if not labels:
         images = 2*images -1
     # transpose the array so it fits to network inputs
     images = np.transpose(images, (0, 3, 1, 2))
+    images = torch.from_numpy(images)
     return images
 
-def load_data(data_dir, label=True):
+def load_data(data_dir, load_labels=True):
     """Loads and normalizes images and label (if label == True)"""
     img_files = sorted(glob.glob(data_dir+'/train_img*.png'))
     images = [cv2.imread(file) for file in img_files]
     # normalize images to <-1;1>
     images = normalize(images)
-    if not labels:
+    if not load_labels:
         return images
     label_files = sorted(glob.glob(data_dir+'/train_lab*.png'))
     labels = [cv2.imread(file) for file in label_files]
     # normalize data to 1 or 0 values (membrane or not)
-    labels = normalize(labels, label=True)
+    labels = normalize(labels, labels=True)
     return images, labels
 
 def train_loader(
@@ -71,7 +73,7 @@ def train_loader(
 
     images, labels = load_data(data_dir)
     train_size = images.shape[0]
-    print('train sizeL: ', train_size)
+    print('train size: ', train_size)
     indices = list(range(train_size))
     split = int(np.floor(valid_size * train_size))
     
@@ -104,10 +106,9 @@ def train_loader(
 def test_loader(
     data_dir, 
     batch_size=1, 
-    random_seed=66,
     num_workers=1):
     """Creates a dataloader for a test set."""
-    images = load_data(data_dir, label=False)
+    images = load_data(data_dir, load_labels=False)
 
     test_loader = DataLoader(
         dataset=images,
