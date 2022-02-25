@@ -19,7 +19,9 @@ parser.add_argument('--mn', type=float, default=0.99, help='Momentum value')
 
 parser.add_argument('--preprocessing', type=bool, default=False, help='if true, new augmented data will be generated')
 
-parser.add_argument('--train', type=bool, default=True, help='if true, the network will be trained, otherwise only evaluated')
+parser.add_argument('--augmentations', type=int, default=20, help='number of augmentations performed on each images')
+
+parser.add_argument('--train', type=bool, default=False, help='if true, the network will be trained, otherwise only evaluated')
 
 def get_config():
     config, unparsed = parser.parse_known_args()

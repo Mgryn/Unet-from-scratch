@@ -8,17 +8,17 @@ from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.sampler import SubsetRandomSampler
 import pdb
 
-def preprocessing(augmentations=20):
+def preprocessing(config, augmentations):
     """Loads the data form multipage tiff files, adds transforms and saves
         desired number of augmentations for each page."""
     # Load the files
-    file = Image.open('data/train-volume.tif')
-    images = [np.array(page) for page in ImageSequence.Iterator(file)]
-    file = Image.open('data/train-labels.tif')
+    file = Image.open(config.data_dir + 'train-volume.tif')
+    images_train = [np.array(page) for page in ImageSequence.Iterator(file)]
+    file = Image.open(config.data_dir + 'train-labels.tif')
     labels = [np.array(page) for page in ImageSequence.Iterator(file)]
 
     # images size (knowing it is square)
-    size = images[0].shape[0]
+    size = images_train[0].shape[0]
     # set of augumentations for the images
     transform = A.Compose([
         A.ShiftScaleRotate(p=0.3),
@@ -28,16 +28,23 @@ def preprocessing(augmentations=20):
     ]) 
 
     # Creation of 20 augumentations from each image
-    for i, (img, lab) in enumerate(zip(images, labels)):
+    for i, (img, lab) in enumerate(zip(images_train, labels)):
         for j in range(augmentations):
             index = i*augmentations + j
             transformed = transform(image = img, mask=lab)
-            filename = 'data/train_img_%03d.png' % index
+            filename = config.data_dir + 'train/img_%03d.png' % index
             print(filename)
             cv2.imwrite(filename, transformed['image'])
-            filename = 'data/train_lab_%03d.png' % index
+            filename = config.data_dir + 'train/lab_%03d.png' % index
             cv2.imwrite(filename, transformed['mask'])
 
+    # extraction of test images from tiff file
+    file = Image.open(config.data_dir + 'test-volume.tif')
+    images_test = [np.array(page) for page in ImageSequence.Iterator(file)]
+    for i, img in enumerate(images_test):
+        filename = config.data_dir + 'test/img_%03d.png' % i
+        print(filename)
+        cv2.imwrite(filename, img)
 
 def normalize(images, labels=False):
     images = np.array(images, dtype=float)
@@ -51,13 +58,13 @@ def normalize(images, labels=False):
 
 def load_data(data_dir, load_labels=True):
     """Loads and normalizes images and label (if label == True)"""
-    img_files = sorted(glob.glob(data_dir+'/train_img*.png'))
+    img_files = sorted(glob.glob(data_dir+'/img*.png'))
     images = [cv2.imread(file) for file in img_files]
     # normalize images to <-1;1>
     images = normalize(images)
     if not load_labels:
         return images
-    label_files = sorted(glob.glob(data_dir+'/train_lab*.png'))
+    label_files = sorted(glob.glob(data_dir+'/lab*.png'))
     labels = [cv2.imread(file) for file in label_files]
     # normalize data to 1 or 0 values (membrane or not)
     labels = normalize(labels, labels=True)
@@ -109,7 +116,6 @@ def test_loader(
     num_workers=1):
     """Creates a dataloader for a test set."""
     images = load_data(data_dir, load_labels=False)
-
     test_loader = DataLoader(
         dataset=images,
         batch_size=batch_size,
