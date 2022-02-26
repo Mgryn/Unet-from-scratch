@@ -25,7 +25,10 @@ def main(config):
             config.batch_size,
         )    
     
-    Trainer(config, dataset)
+    trainer = Trainer(config, dataset)
+
+    trainer.train()
+
 
 
 if __name__ == '__main__':

@@ -47,27 +47,31 @@ def preprocessing(config, augmentations):
         cv2.imwrite(filename, img)
 
 def normalize(images, labels=False):
-    images = np.array(images, dtype=float)
+    images = np.array(images, dtype=np.float32)
     images /= 255.0
     if not labels:
         images = 2*images -1
     # transpose the array so it fits to network inputs
-    images = np.transpose(images, (0, 3, 1, 2))
     images = torch.from_numpy(images)
+    images = torch.unsqueeze(images, -1)
+    images = torch.permute(images, (0, 3, 1, 2))
     return images
 
 def load_data(data_dir, load_labels=True):
     """Loads and normalizes images and label (if label == True)"""
     img_files = sorted(glob.glob(data_dir+'/img*.png'))
-    images = [cv2.imread(file) for file in img_files]
+    # read images in greyscale
+    images = [cv2.imread(file, 0) for file in img_files]
     # normalize images to <-1;1>
     images = normalize(images)
     if not load_labels:
         return images
     label_files = sorted(glob.glob(data_dir+'/lab*.png'))
-    labels = [cv2.imread(file) for file in label_files]
+    labels = [cv2.imread(file, 0) for file in label_files]
     # normalize data to 1 or 0 values (membrane or not)
     labels = normalize(labels, labels=True)
+    # make a ground truth tensor for both labels
+    labels = torch.cat((labels, 1-labels), 1)
     return images, labels
 
 def train_loader(

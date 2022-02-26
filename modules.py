@@ -1,13 +1,15 @@
+import numpy as np
 import torch.nn as nn
 import torch
+import torch.nn.functional as F
 
 class Convolutions(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(Convolutions, self).__init__()
         self.layers = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, 3),
+            nn.Conv2d(in_channels, out_channels, 3, padding=1),
             nn.ReLU(),
-            nn.Conv2d(out_channels, out_channels, 3),
+            nn.Conv2d(out_channels, out_channels, 3, padding=1),
             nn.ReLU(),
         )
     
@@ -34,8 +36,16 @@ class Up(nn.Module):
     
     def forward(self, x, x_down):
         x_up = self.conv_up(x)
-        shape_diff = (x_down.shape[2] - x_up.shape[2])//2
-        x_down = x_down[...,shape_diff:-1-shape_diff+1, shape_diff:-1-shape_diff+1]
+        shape_diff = (x_down.shape[2] - x_up.shape[2])
+        x_down = F.pad(
+            x_down,
+            (
+                -shape_diff // 2,
+                -int(np.floor(shape_diff / 2)),
+                -shape_diff // 2,
+                -int(np.floor(shape_diff / 2))
+                )
+            )
         x_cat = torch.cat([x_down, x_up], dim=1)
         x_cat = self.convolution(x_cat)
         return x_cat

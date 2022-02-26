@@ -1,16 +1,21 @@
+import os
+from tqdm import tqdm
+import shutil
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau 
 from model import Unet
 
 class Trainer:
     def __init__(self, config, dataloader):
         """Initialize the network with parameters from config file"""
-        self.net = Unet()
+        self.unet = Unet()
         self.epochs = config.epochs
         self.batch_size = config.batch_size
         self.lr = config.lr
         self.momentum = config.mn
+        self.checkpoint_dir = config.checkpoint_dir
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         if config.train:
@@ -23,26 +28,79 @@ class Trainer:
             self.test_loader = dataloader
             self.num_test = len(self.test_loader.dataset)
 
-        self.optimizer = optim.Adam(self.net.parameters(), lr = self.lr)
-        self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'max', patience=5)
-        self.criterion = nn.CrossEntropyLoss()
+        self.unet.to(self.device)
 
-        ## TO BE CONTINUED
-    
+        self.optimizer = optim.Adam(self.unet.parameters(), lr = self.lr)
+        self.scheduler = ReduceLROnPlateau(self.optimizer, 'max', patience=5)
+        self.criterion = nn.CrossEntropyLoss()
+        
+        self.best_valid_acc = 0
+
     
     def train_one_epoch(self):
-        # TODO
-        pass
+
+        self.unet.train()
+        loss = 0
+
+        with tqdm(total=self.num_train) as pbar:
+            for i, (x, y) in enumerate(self.train_loader):
+                self.optimizer.zero_grad()
+
+                x, y = x.to(self.device), y.to(self.device)
+
+                self.batch_size = x.shape[0]
+                out = self.unet(x)
+                loss = self.criterion(out, y.float())
+                loss.backward()
+                self.optimizer.step()
+
+                # running_loss += loss.data[0]
 
     def train(self):
-        
-        # not yet impelmented
-        return
-        step = 0
 
         for epoch in range(self.epochs):
-            self.net.train()
-            loss = 0
 
-            # with tqdm(total=data.size()):
-            #     train_one_epoch()
+            self.running_loss = 0
+            
+            train_loss, train_acc = self.train_one_epoch()
+
+            valid_loss, valid_acc = self.validate(epoch)
+
+            self.scheduler.step(-valid_acc)
+
+            is_best = valid_acc > self.best_valid_acc
+            msg1 = "train loss: {:.3f} - train acc: {:.3f} "
+            msg2 = "- val loss: {:.3f} - val acc: {:.3f} - val err: {:.3f}"
+
+            if is_best:
+                self.counter = 0
+                msg2 += " [*]"
+            msg = msg1 + msg2
+            print(
+                msg.format(
+                    train_loss, train_acc, valid_loss, valid_acc, 100 - valid_acc
+                )
+            )
+
+            self.best_valid_acc = max(valid_acc, self.best_valid_acc)
+            self.save_checkpoint(
+                {
+                    "epoch": epoch + 1,
+                    "model_state": self.model.state_dict(),
+                    "optim_state": self.optimizer.state_dict(),
+                    "best_valid_acc": self.best_valid_acc,
+                },
+                is_best,
+            )
+
+    def save_checkpoint(self, state, is_best):
+        """Saves a checkpoint of the model.
+        If this model has reached the best validation accuracy thus
+        far, a seperate file with the suffix `best` is created.
+        """
+        filename =  "Unet_ckpt.pth.tar"
+        ckpt_path = os.path.join(self.checkpoint_dir, filename)
+        torch.save(state, ckpt_path)
+        if is_best:
+            filename = "Unet_model_best.pth.tar"
+            shutil.copyfile(ckpt_path, os.path.join(self.checkpoint_dir, filename))
