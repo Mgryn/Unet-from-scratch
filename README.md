@@ -19,8 +19,8 @@ I choose the U-net as it is easy to implement and very effective network in vari
 
 ## Future work
 
-This project is still in progress. The training script has not been properly tested yet. 
+The project is not done yet, currently it consists only of the training loop, which is not full without the validation stage. 
+After that it will be necessary to implement test stage. 
+Current traininig loop will be remodeled soon in order to implement this changes. 
 
-It would be great to implement ability to work with:
-- different sized input
-- bigger number of classes (currently 2).
+When the model will be finished, it would be good to introduce possbitity to work with bigger nuber of classes - currently it supports two.

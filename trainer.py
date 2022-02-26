@@ -35,13 +35,13 @@ class Trainer:
         self.scheduler = ReduceLROnPlateau(self.optimizer, 'max', patience=5)
         self.criterion = nn.CrossEntropyLoss()
         
-        self.best_valid_acc = 0
+        self.best_train_loss = 100000000
 
     
     def train_one_epoch(self):
 
         self.unet.train()
-        loss = 0
+        loss_sum = 0
         tic = time.time()
 
         with tqdm(total=self.num_train) as pbar:
@@ -52,6 +52,7 @@ class Trainer:
                 self.batch_size = x.shape[0]
                 out = self.unet(x)
                 loss = self.criterion(out, y.float())
+                loss_sum += loss
                 loss.backward()
                 self.optimizer.step()
 
@@ -65,6 +66,7 @@ class Trainer:
                     )
                 )
                 pbar.update(self.batch_size)
+        return loss_sum / self.num_train
 
     def train(self):
 
@@ -72,15 +74,15 @@ class Trainer:
 
             self.running_loss = 0
             
-            train_loss, train_acc = self.train_one_epoch()
+            train_loss = self.train_one_epoch()
 
             # valid_loss, valid_acc = self.validate(epoch)
 
             # self.scheduler.step(-valid_acc)
-            self.scheduler.step(-train_acc)
+            # self.scheduler.step(-train_acc)
 
 
-            is_best = train_acc > self.best_valid_acc
+            is_best = train_loss > self.best_train_loss
             msg1 = "train loss: {:.3f} - train acc: {:.3f} "
             msg2 = "- val loss: {:.3f} - val acc: {:.3f} - val err: {:.3f}"
 
@@ -90,17 +92,17 @@ class Trainer:
             msg = msg1 + msg2
             print(
                 msg.format(
-                    train_loss, train_acc, train_loss, train_acc, 100 - train_acc
+                    train_loss, train_loss, train_loss, train_loss, 100 - train_loss
                 )
             )
 
-            self.best_train_acc = max(train_acc, self.best_train_acc)
+            self.best_train_loss = min(train_loss, self.best_train_loss)
             self.save_checkpoint(
                 {
                     "epoch": epoch + 1,
-                    "model_state": self.model.state_dict(),
+                    "model_state": self.unet.state_dict(),
                     "optim_state": self.optimizer.state_dict(),
-                    "best_valid_acc": self.best_valid_acc,
+                    "best_valid_loss": self.best_train_loss,
                 },
                 is_best,
             )
