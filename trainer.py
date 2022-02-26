@@ -1,4 +1,5 @@
 import os
+import time
 from tqdm import tqdm
 import shutil
 import torch
@@ -41,11 +42,11 @@ class Trainer:
 
         self.unet.train()
         loss = 0
+        tic = time.time()
 
         with tqdm(total=self.num_train) as pbar:
             for i, (x, y) in enumerate(self.train_loader):
                 self.optimizer.zero_grad()
-
                 x, y = x.to(self.device), y.to(self.device)
 
                 self.batch_size = x.shape[0]
@@ -55,6 +56,15 @@ class Trainer:
                 self.optimizer.step()
 
                 # running_loss += loss.data[0]
+                toc = time.time()
+                pbar.set_description(
+                    (
+                        "{:.1f}s - loss: {:.3f}".format(
+                            (toc - tic), loss.item()
+                        )
+                    )
+                )
+                pbar.update(self.batch_size)
 
     def train(self):
 
@@ -64,11 +74,13 @@ class Trainer:
             
             train_loss, train_acc = self.train_one_epoch()
 
-            valid_loss, valid_acc = self.validate(epoch)
+            # valid_loss, valid_acc = self.validate(epoch)
 
-            self.scheduler.step(-valid_acc)
+            # self.scheduler.step(-valid_acc)
+            self.scheduler.step(-train_acc)
 
-            is_best = valid_acc > self.best_valid_acc
+
+            is_best = train_acc > self.best_valid_acc
             msg1 = "train loss: {:.3f} - train acc: {:.3f} "
             msg2 = "- val loss: {:.3f} - val acc: {:.3f} - val err: {:.3f}"
 
@@ -78,11 +90,11 @@ class Trainer:
             msg = msg1 + msg2
             print(
                 msg.format(
-                    train_loss, train_acc, valid_loss, valid_acc, 100 - valid_acc
+                    train_loss, train_acc, train_loss, train_acc, 100 - train_acc
                 )
             )
 
-            self.best_valid_acc = max(valid_acc, self.best_valid_acc)
+            self.best_train_acc = max(train_acc, self.best_train_acc)
             self.save_checkpoint(
                 {
                     "epoch": epoch + 1,
