@@ -47,6 +47,7 @@ def preprocessing(config, augmentations):
         cv2.imwrite(filename, img)
 
 def normalize(images, labels=False):
+    "Returns after normalization and transforms to be fit for model input"
     images = np.array(images, dtype=np.float32)
     images /= 255.0
     if not labels:

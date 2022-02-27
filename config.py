@@ -1,7 +1,9 @@
 import argparse
 
 arg_list = []
-parser = argparse.ArgumentParser(description="Unet")
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--name', type=str, default='Unet', help='Model name')
 
 parser.add_argument('--data_dir', type=str, default='data/', help='data directory')
 
@@ -24,5 +26,6 @@ parser.add_argument('--train', type=bool, default=True, help='if true, the netwo
 parser.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='directory into which checkpoints are saved')
 
 def get_config():
+    "Returns parameters for network training"
     config, unparsed = parser.parse_known_args()
     return config, unparsed

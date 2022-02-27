@@ -4,6 +4,7 @@ import torch
 import torch.nn.functional as F
 
 class Convolutions(nn.Module):
+    "Duble convolutions withe ReLU activation"
     def __init__(self, in_channels, out_channels):
         super(Convolutions, self).__init__()
         self.layers = nn.Sequential(
@@ -18,6 +19,7 @@ class Convolutions(nn.Module):
         return x
 
 class Down(nn.Module):
+    "Double convolution followed by max poolinx"
     def __init__(self, in_channels, out_channels):
         super(Down, self).__init__()
         self.convolution = Convolutions(in_channels, out_channels)
@@ -29,6 +31,7 @@ class Down(nn.Module):
         return x_c, x_mp
 
 class Up(nn.Module):
+    "Upsamping followed by double convolution."
     def __init__(self, in_channels, out_channels):
         super(Up, self).__init__()
         self.conv_up = nn.ConvTranspose2d(in_channels, in_channels//2, 2, 2)
