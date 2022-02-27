@@ -84,7 +84,6 @@ def train_loader(
 
     images, labels = load_data(data_dir)
     train_size = images.shape[0]
-    print('train size: ', train_size)
     indices = list(range(train_size))
     split = int(np.floor(valid_size * train_size))
     

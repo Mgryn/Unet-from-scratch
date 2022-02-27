@@ -34,7 +34,7 @@ class Trainer:
         self.unet.to(self.device)
 
         self.optimizer = optim.Adam(self.unet.parameters(), lr = self.lr)
-        self.scheduler = ReduceLROnPlateau(self.optimizer, 'max', patience=5)
+        self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', patience=5)
         self.criterion = nn.CrossEntropyLoss()
         
         self.best_valid_acc = 0
@@ -46,7 +46,6 @@ class Trainer:
         loss_sum = 0
         acc_sum = 0
         tic = time.time()
-        num_x = 0
 
         with tqdm(total=self.num_train) as pbar:
             for i, (x, y) in enumerate(self.train_loader):
@@ -58,7 +57,7 @@ class Trainer:
                 loss_sum += loss
 
                 predictions = torch.max(probabilities, dim=1)[1]
-                correct = (predictions == y[:, 0, :, :]).float()
+                correct = (predictions == y[:, 1, :, :]).float()
                 acc_sum += correct.sum()
 
                 loss.backward()
@@ -76,7 +75,7 @@ class Trainer:
         
         loss_val = loss_sum / self.num_train
         pixel_num = self.num_train * x.shape[2]*x.shape[3]
-        acc_val = acc_sum / pixel_num
+        acc_val = 100 * acc_sum / pixel_num
         return loss_val, acc_val
 
     @torch.no_grad()
@@ -91,12 +90,12 @@ class Trainer:
             loss = self.criterion(out, y.float())
             loss_sum += loss
             predictions = torch.max(probabilities, dim=1)[1]
-            correct = (predictions == y[:, 0, :, :]).float()
+            correct = (predictions == y[:, 1, :, :]).float()
             acc_sum += correct.sum()
 
         loss_val = loss_sum / self.num_valid
         pixel_num = self.num_valid * x.shape[2] * x.shape[3]
-        acc_val = acc_sum / pixel_num
+        acc_val = 100 * acc_sum / pixel_num
 
         return loss_val, acc_val
 

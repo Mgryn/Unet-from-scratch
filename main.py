@@ -26,10 +26,7 @@ def main(config):
         )    
     
     trainer = Trainer(config, dataset)
-
     trainer.train()
-
-
 
 if __name__ == '__main__':
     config, unparsed = get_config()
