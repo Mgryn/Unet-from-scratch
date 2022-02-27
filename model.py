@@ -1,5 +1,6 @@
 
 import torch.nn as nn
+import torch.nn.functional as F
 from modules import *
 
 class Unet(nn.Module):
@@ -28,4 +29,5 @@ class Unet(nn.Module):
         u3 = self.up_3(u2, x2)
         u4 = self.up_4(u3, x1)
         out = self.last(u4)
-        return out
+        probabilities = F.softmax(out, dim=1)
+        return out, probabilities

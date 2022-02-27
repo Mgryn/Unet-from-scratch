@@ -70,7 +70,7 @@ def load_data(data_dir, load_labels=True):
     labels = [cv2.imread(file, 0) for file in label_files]
     # normalize data to 1 or 0 values (membrane or not)
     labels = normalize(labels, labels=True)
-    # make a ground truth tensor for both labels
+    # make a one-hot ground truth tensor for two labels
     labels = torch.cat((labels, 1-labels), 1)
     return images, labels
 
