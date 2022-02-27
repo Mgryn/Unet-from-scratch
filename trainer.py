@@ -1,20 +1,18 @@
 
 import os
 import time
-from tqdm import tqdm
 import shutil
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from tqdm import tqdm
 from torch.optim.lr_scheduler import ReduceLROnPlateau 
 from model import Unet
-import pdb
 
 class Trainer:
     def __init__(self, config, dataloader):
         """Initialize the network with parameters from config file"""
         self.model_name = config.name
-        self.unet = Unet()
         self.epochs = config.epochs
         self.batch_size = config.batch_size
         self.lr = config.lr
@@ -26,20 +24,18 @@ class Trainer:
             self.valid_loader = dataloader[1]
             self.num_train = len(self.train_loader.sampler.indices)
             self.num_valid = len(self.valid_loader.sampler.indices)
-
         else:
             self.test_loader = dataloader
             self.num_test = len(self.test_loader.dataset)
 
+        self.unet = Unet()
         self.unet.to(self.device)
+        self.best_valid_acc = 0
 
         self.optimizer = optim.Adam(self.unet.parameters(), lr = self.lr)
         self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', patience=5)
         self.criterion = nn.CrossEntropyLoss()
-        
-        self.best_valid_acc = 0
 
-    
     def train_one_epoch(self):
         "Runs one iteration of the training loop, returns loss and accuracy"
         self.unet.train()
@@ -48,15 +44,15 @@ class Trainer:
         tic = time.time()
 
         with tqdm(total=self.num_train) as pbar:
-            for i, (x, y) in enumerate(self.train_loader):
+            for (x, y) in self.train_loader:
 
                 self.optimizer.zero_grad()
                 x, y = x.to(self.device), y.to(self.device)
                 out, probabilities = self.unet(x)
-                loss = self.criterion(out, y.float())
-                loss_sum += loss
-
                 predictions = torch.max(probabilities, dim=1)[1]
+                f1_loss = 1 - self.f1_score(predictions.float(), y[:, 1, :, :].float())
+                loss = self.criterion(out, y.float()) + f1_loss
+                loss_sum += loss
                 correct = (predictions == y[:, 1, :, :]).float()
                 acc_sum += correct.sum()
 
@@ -84,12 +80,13 @@ class Trainer:
         loss_sum = 0
         acc_sum = 0
 
-        for i, (x, y) in enumerate(self.valid_loader):
+        for (x, y) in self.valid_loader:
             x, y = x.to(self.device), y.to(self.device)
             out, probabilities = self.unet(x)
-            loss = self.criterion(out, y.float())
-            loss_sum += loss
             predictions = torch.max(probabilities, dim=1)[1]
+            f1_loss = 1 - self.f1_score(predictions.float(), y[:, 1, :, :].float())
+            loss = self.criterion(out, y.float()) + f1_loss
+            loss_sum += loss
             correct = (predictions == y[:, 1, :, :]).float()
             acc_sum += correct.sum()
 
@@ -99,16 +96,12 @@ class Trainer:
 
         return loss_val, acc_val
 
-
     def train(self):
         "Runs the training and validation stages, saves checkpoints based on validation accuracy"
         for epoch in range(self.epochs):
-
-            self.running_loss = 0
             
             train_loss, train_acc = self.train_one_epoch()
             valid_loss, valid_acc = self.validate()
-
             self.scheduler.step(-valid_acc)
 
             is_best = train_loss > self.best_valid_acc
@@ -141,7 +134,7 @@ class Trainer:
         self.load_checkpoint(best=True)
         acc_sum = 0
 
-        for i, (x, y) in enumerate(self.test_loader):
+        for (x, y) in self.test_loader:
             x, y = x.to(self.device), y.to(self.device)
             out, probabilities = self.unet(x)
 
@@ -151,8 +144,18 @@ class Trainer:
 
         pixel_num = self.num_test * x.shape[2] * x.shape[3]
         acc_val = 100 * acc_sum / pixel_num
-        
+
         print(f"[*] Test Acc: {acc_val:.2f}% on {self.num_test} images")
+
+    def f1_score(self, predictions, labels):
+        "Calculate the dice coefficient (F1-score) for the model output"
+        overlap = torch.dot(predictions.reshape(-1), labels.reshape(-1))
+        sum_ = torch.sum(predictions) + torch.sum(labels)
+        if sum_.item() == 0:
+            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! suma rowanna 0')
+            return 0
+        score = 2 * overlap / sum_
+        return score
 
     def save_checkpoint(self, state, is_best):
         """Saves a checkpoint of the model.
